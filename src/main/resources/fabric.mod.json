@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "peterwolfs_realistic_tree_felling",
+  "version": "${version}",
+  "name": "PeterWolf's Realistic Tree Felling",
+  "description": "Server-authoritative directional tree felling for Fabric.",
+  "authors": ["PeterWolf"],
+  "license": "MIT",
+  "icon": "assets/peterwolfs_realistic_tree_felling/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["com.peterwolf.realtreefelling.RealTreeFellingMod"],
+    "client": ["com.peterwolf.realtreefelling.client.RealTreeFellingClient"]
+  },
+  "depends": { "fabricloader": ">=0.19.3", "minecraft": "~26.2", "java": ">=25", "fabric-api": "*" }
+}

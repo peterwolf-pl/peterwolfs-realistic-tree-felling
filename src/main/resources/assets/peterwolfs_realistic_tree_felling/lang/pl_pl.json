@@ -1,0 +1,11 @@
+{
+  "message.peterwolfs_realistic_tree_felling.require_axe": "Do ścięcia tego drzewa użyj siekiery.",
+  "message.peterwolfs_realistic_tree_felling.fallen_log_progress": "Rąbanie przewróconej kłody: %s/%s",
+  "message.peterwolfs_realistic_tree_felling.fallen_log_collected": "Przewrócona kłoda trafiła do ekwipunku.",
+  "message.peterwolfs_realistic_tree_felling.falling": "Drzewo się przewraca!",
+  "message.peterwolfs_realistic_tree_felling.invalid_tree": "Ta konstrukcja nie wygląda jak naturalne drzewo.",
+  "message.peterwolfs_realistic_tree_felling.limit": "Drzewo przekracza skonfigurowany bezpieczny limit.",
+  "command.peterwolfs_realistic_tree_felling.inspect": "Drzewo: %s bloków, wysokość %s, masa %s; upadek: %s (%s)",
+  "command.peterwolfs_realistic_tree_felling.no_session": "Brak prawidłowego drzewa przy celowanym bloku.",
+  "command.peterwolfs_realistic_tree_felling.reloaded": "Konfiguracja ścinania drzew została przeładowana."
+}

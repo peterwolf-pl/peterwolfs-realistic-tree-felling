@@ -1,0 +1,11 @@
+{
+  "message.peterwolfs_realistic_tree_felling.require_axe": "Use an axe to fell this tree.",
+  "message.peterwolfs_realistic_tree_felling.fallen_log_progress": "Splitting fallen log: %s/%s",
+  "message.peterwolfs_realistic_tree_felling.fallen_log_collected": "Fallen log added to inventory.",
+  "message.peterwolfs_realistic_tree_felling.falling": "Tree falling!",
+  "message.peterwolfs_realistic_tree_felling.invalid_tree": "This structure does not look like a natural tree.",
+  "message.peterwolfs_realistic_tree_felling.limit": "Tree is larger than the configured safe limit.",
+  "command.peterwolfs_realistic_tree_felling.inspect": "Tree: %s blocks, %s high, mass %s; fall: %s (%s)",
+  "command.peterwolfs_realistic_tree_felling.no_session": "No valid tree at your target.",
+  "command.peterwolfs_realistic_tree_felling.reloaded": "Tree felling configuration reloaded."
+}
