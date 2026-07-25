@@ -10,5 +10,11 @@
     "sounds": [
       "peterwolfs_realistic_tree_felling:tree_fall_impact"
     ]
+  },
+  "rtf": {
+    "subtitle": "subtitles.peterwolfs_realistic_tree_felling.tree_fall_start",
+    "sounds": [
+      "peterwolfs_realistic_tree_felling:rtf"
+    ]
   }
 }

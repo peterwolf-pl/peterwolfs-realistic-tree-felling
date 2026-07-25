@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.9 - 2026-07-25
+
+- Replaced audio with custom `rtf.ogg` audio recording: integrated `rtf.ogg` audio asset for tree felling and impact sounds.
+
 ## 1.0.8 - 2026-07-25
 
 - Added custom realistic tree falling audio package: sound of wood creaking/groaning when a tree starts falling (`tree_fall_start`) and heavy timber impact crash on landing (`tree_fall_impact`) with subtitles.

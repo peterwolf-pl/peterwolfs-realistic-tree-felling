@@ -30,6 +30,7 @@ public final class RealTreeFellingMod implements ModInitializer {
 
 	public static final SoundEvent TREE_FALL_START = registerSound("tree_fall_start");
 	public static final SoundEvent TREE_FALL_IMPACT = registerSound("tree_fall_impact");
+	public static final SoundEvent RTF = registerSound("rtf");
 
 	private static SoundEvent registerSound(String name) {
 		Identifier id = id(name);
