@@ -1,0 +1,14 @@
+{
+  "tree_fall_start": {
+    "subtitle": "subtitles.peterwolfs_realistic_tree_felling.tree_fall_start",
+    "sounds": [
+      "peterwolfs_realistic_tree_felling:tree_fall_start"
+    ]
+  },
+  "tree_fall_impact": {
+    "subtitle": "subtitles.peterwolfs_realistic_tree_felling.tree_fall_impact",
+    "sounds": [
+      "peterwolfs_realistic_tree_felling:tree_fall_impact"
+    ]
+  }
+}

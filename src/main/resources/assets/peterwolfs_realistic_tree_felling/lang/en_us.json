@@ -7,5 +7,7 @@
   "message.peterwolfs_realistic_tree_felling.limit": "Tree is larger than the configured safe limit.",
   "command.peterwolfs_realistic_tree_felling.inspect": "Tree: %s blocks, %s high, mass %s; fall: %s (%s)",
   "command.peterwolfs_realistic_tree_felling.no_session": "No valid tree at your target.",
-  "command.peterwolfs_realistic_tree_felling.reloaded": "Tree felling configuration reloaded."
+  "command.peterwolfs_realistic_tree_felling.reloaded": "Tree felling configuration reloaded.",
+  "subtitles.peterwolfs_realistic_tree_felling.tree_fall_start": "Tree groans and falls",
+  "subtitles.peterwolfs_realistic_tree_felling.tree_fall_impact": "Tree crashes onto ground"
 }

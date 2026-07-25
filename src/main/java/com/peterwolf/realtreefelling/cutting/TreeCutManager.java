@@ -48,7 +48,10 @@ public final class TreeCutManager {
 		for (DetectedTree.TreeBlockData block : fallingBlocks) level.setBlock(tree.base().offset(block.relative()), net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
 		FallingTreeEntity entity = new FallingTreeEntity(RealTreeFellingMod.FALLING_TREE, level);
 		entity.configure(new DetectedTree(tree.base(), fallingBlocks, tree.height()), direction); entity.setPos(tree.base().getX() + 0.5D, tree.base().getY(), tree.base().getZ() + 0.5D); level.addFreshEntity(entity);
-		hint(player, "message.peterwolfs_realistic_tree_felling.falling"); level.playSound(null, tree.base(), SoundEvents.FENCE_GATE_OPEN, SoundSource.BLOCKS, 1.4F, 0.65F);
+		hint(player, "message.peterwolfs_realistic_tree_felling.falling");
+		if (TreeFellingConfig.INSTANCE.enableCreakingSounds) {
+			level.playSound(null, tree.base(), RealTreeFellingMod.TREE_FALL_START, SoundSource.BLOCKS, 1.5F, 1.0F);
+		}
 	}
 	private static void cutSound(ServerLevel level, BlockPos pos) { level.playSound(null, pos, SoundEvents.AXE_STRIP, SoundSource.BLOCKS, 0.9F, 1.0F); }
 	private static void damageAxe(ServerPlayer player, ItemStack stack) { if (!player.getAbilities().instabuild && stack.isDamageableItem()) stack.hurtAndBreak(1, player, net.minecraft.world.entity.EquipmentSlot.MAINHAND); }

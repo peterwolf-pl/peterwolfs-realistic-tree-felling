@@ -7,5 +7,7 @@
   "message.peterwolfs_realistic_tree_felling.limit": "Drzewo przekracza skonfigurowany bezpieczny limit.",
   "command.peterwolfs_realistic_tree_felling.inspect": "Drzewo: %s bloków, wysokość %s, masa %s; upadek: %s (%s)",
   "command.peterwolfs_realistic_tree_felling.no_session": "Brak prawidłowego drzewa przy celowanym bloku.",
-  "command.peterwolfs_realistic_tree_felling.reloaded": "Konfiguracja ścinania drzew została przeładowana."
+  "command.peterwolfs_realistic_tree_felling.reloaded": "Konfiguracja ścinania drzew została przeładowana.",
+  "subtitles.peterwolfs_realistic_tree_felling.tree_fall_start": "Drzewo trzeszczy i upada",
+  "subtitles.peterwolfs_realistic_tree_felling.tree_fall_impact": "Drzewo uderza o ziemię"
 }

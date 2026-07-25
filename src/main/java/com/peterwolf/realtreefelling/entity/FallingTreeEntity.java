@@ -1,5 +1,6 @@
 package com.peterwolf.realtreefelling.entity;
 
+import com.peterwolf.realtreefelling.RealTreeFellingMod;
 import com.peterwolf.realtreefelling.config.TreeFellingConfig;
 import com.peterwolf.realtreefelling.cutting.CanopyDecayManager;
 import com.peterwolf.realtreefelling.cutting.FallDirection;
@@ -96,6 +97,8 @@ public final class FallingTreeEntity extends Entity {
 				Block.popResource(level, destination, new ItemStack(treeBlock.state.getBlock()));
 			}
 		}
+		BlockPos impactPos = anchor.offset(direction.getStepX() * Math.max(1, height() / 2), 0, direction.getStepZ() * Math.max(1, height() / 2));
+		level.playSound(null, impactPos, RealTreeFellingMod.TREE_FALL_IMPACT, SoundSource.BLOCKS, 1.6F, 0.9F + level.getRandom().nextFloat() * 0.2F);
 		discard();
 	}
 

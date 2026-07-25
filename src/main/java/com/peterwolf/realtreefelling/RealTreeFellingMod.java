@@ -16,6 +16,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 import org.slf4j.Logger;
@@ -26,6 +27,14 @@ public final class RealTreeFellingMod implements ModInitializer {
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 	private static final ResourceKey<EntityType<?>> FALLING_TREE_KEY = ResourceKey.create(Registries.ENTITY_TYPE, id("falling_tree"));
 	public static final EntityType<FallingTreeEntity> FALLING_TREE = Registry.register(BuiltInRegistries.ENTITY_TYPE, FALLING_TREE_KEY, EntityType.Builder.of(FallingTreeEntity::new, MobCategory.MISC).sized(1.0F, 1.0F).clientTrackingRange(12).build(FALLING_TREE_KEY));
+
+	public static final SoundEvent TREE_FALL_START = registerSound("tree_fall_start");
+	public static final SoundEvent TREE_FALL_IMPACT = registerSound("tree_fall_impact");
+
+	private static SoundEvent registerSound(String name) {
+		Identifier id = id(name);
+		return Registry.register(BuiltInRegistries.SOUND_EVENT, id, SoundEvent.createVariableRangeEvent(id));
+	}
 	@Override public void onInitialize() {
 		TreeFellingConfig.load();
 		PlayerBlockBreakEvents.BEFORE.register((level, player, pos, state, blockEntity) -> {
