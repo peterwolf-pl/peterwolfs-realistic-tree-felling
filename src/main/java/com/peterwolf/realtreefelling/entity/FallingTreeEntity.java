@@ -70,7 +70,87 @@ public final class FallingTreeEntity extends Entity {
 		if (!encoded.equals(decodedGeometry)) { decodedGeometry = encoded; decodedVisualBlocks = decodeVisualGeometry(encoded); }
 		return decodedVisualBlocks;
 	}
-	@Override public void tick() { super.tick(); if (level().isClientSide()) { interpolation.interpolate(); return; } int age = entityData.get(AGE) + 1; entityData.set(AGE, age); if (age >= FALL_TICKS) land((ServerLevel) level()); }
+	@Override public void tick() {
+		super.tick();
+		if (level().isClientSide()) {
+			interpolation.interpolate();
+			return;
+		}
+		int age = entityData.get(AGE) + 1;
+		entityData.set(AGE, age);
+		if (TreeFellingConfig.INSTANCE.enableEntityDamage) {
+			checkAndApplyEntityDamage((ServerLevel) level());
+		}
+		if (age >= FALL_TICKS) land((ServerLevel) level());
+	}
+
+	private void checkAndApplyEntityDamage(ServerLevel level) {
+		if (blocks.isEmpty()) return;
+		int age = entityData.get(AGE);
+		float progress = Math.clamp((float) age / FALL_TICKS, 0.0F, 1.0F);
+		float tiltDeg = 90.0F * progress * progress;
+		double tiltRad = Math.toRadians(tiltDeg);
+		double cosTilt = Math.cos(tiltRad);
+		double sinTilt = Math.sin(tiltRad);
+
+		Direction direction = fallDirection();
+		int maxH = Math.max(2, height());
+		net.minecraft.world.phys.AABB searchBox = new net.minecraft.world.phys.AABB(anchor).inflate(maxH + 4);
+		List<net.minecraft.world.entity.LivingEntity> candidateEntities = level.getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class, searchBox, e -> e.isAlive() && !e.isSpectator());
+
+		if (candidateEntities.isEmpty()) return;
+
+		for (TreeBlock treeBlock : blocks) {
+			BlockPos rel = treeBlock.relative;
+			boolean isLog = treeBlock.state.is(BlockTags.LOGS);
+			boolean isLeaf = treeBlock.state.is(BlockTags.LEAVES);
+			if (!isLog && !isLeaf) continue;
+
+			double localX = rel.getX();
+			double localY = rel.getY() + 0.5;
+			double localZ = rel.getZ();
+
+			double x1 = localX * cosTilt - localY * sinTilt;
+			double y1 = localX * sinTilt + localY * cosTilt;
+			double z1 = localZ;
+
+			double worldOffsetX;
+			double worldOffsetZ;
+			switch (direction) {
+				case NORTH -> { worldOffsetX = -z1; worldOffsetZ = x1; }
+				case SOUTH -> { worldOffsetX = z1; worldOffsetZ = -x1; }
+				case EAST -> { worldOffsetX = -x1; worldOffsetZ = -z1; }
+				default -> { worldOffsetX = x1; worldOffsetZ = z1; }
+			}
+
+			double worldX = anchor.getX() + 0.5 + worldOffsetX;
+			double worldY = anchor.getY() + y1;
+			double worldZ = anchor.getZ() + 0.5 + worldOffsetZ;
+
+			net.minecraft.world.phys.AABB blockAABB = new net.minecraft.world.phys.AABB(worldX - 0.55, worldY - 0.55, worldZ - 0.55, worldX + 0.55, worldY + 0.55, worldZ + 0.55);
+
+			for (net.minecraft.world.entity.LivingEntity entity : candidateEntities) {
+				if (!entity.isAlive()) continue;
+
+				if (entity instanceof net.minecraft.server.level.ServerPlayer player) {
+					if (player.isCreative() || !TreeFellingConfig.INSTANCE.enablePlayerDamage) continue;
+				} else {
+					if (!TreeFellingConfig.INSTANCE.enableMobDamage) continue;
+				}
+
+				if (entity.getBoundingBox().intersects(blockAABB)) {
+					if (isLog) {
+						// Trunk log hit: instant death on the spot!
+						entity.invulnerableTime = 0;
+						entity.hurtServer(level, level.damageSources().fallingBlock(this), 1000.0F);
+					} else {
+						// Leaf block hit: smaller damage
+						entity.hurtServer(level, level.damageSources().fallingBlock(this), 4.0F);
+					}
+				}
+			}
+		}
+	}
 	private void land(ServerLevel level) {
 		Direction direction = fallDirection();
 		// Over a chasm / void (no terrain at stump height or just below) the whole tree shatters into block items.

@@ -42,6 +42,9 @@ public final class TreeCutManager {
 		startFall(level, player, tree.get(), FallDirection.from(player.getDirection().getOpposite()));
 		return true;
 	}
+	public static void startFallWithDirection(ServerLevel level, ServerPlayer player, DetectedTree tree, Direction direction) {
+		startFall(level, player, tree, FallDirection.from(direction));
+	}
 	private static void startFall(ServerLevel level, ServerPlayer player, DetectedTree tree, FallDirection direction) {
 		// Keep the base block as a clean stump; it is not a virtual hinge and never controls the fall.
 		List<DetectedTree.TreeBlockData> fallingBlocks = tree.blocks().stream().filter(block -> !block.relative().equals(BlockPos.ZERO)).toList();

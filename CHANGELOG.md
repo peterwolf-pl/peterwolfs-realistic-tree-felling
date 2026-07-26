@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.0 - 2026-07-26
+
+- Added realistic crushing entity damage during tree fall: trunk log collision causes instant death ("śmierć na miejscu"), while leaf block collision causes minor damage.
+- Added secret/bulk tree felling commands (`/secretfall`, `/fellall`, `/timber`, `/treefelling secretfall`) taking radius `x` and direction `N`, `S`, `W`, or `E` to fell all trees in range simultaneously.
+
 ## 1.0.9 - 2026-07-25
 
 - Replaced audio with custom `rtf.ogg` audio recording: integrated `rtf.ogg` audio asset for tree felling and impact sounds.
