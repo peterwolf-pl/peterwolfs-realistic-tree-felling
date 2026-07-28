@@ -1,9 +1,12 @@
 # Changelog
 
+## 1.1.1 - 2026-07-28
+
+- Added secret admin timber tools: `/timber removelogs <radius>` removes all log blocks near the player (no drops), and `/timber reseed <radius> <spacing> <sapling…>` plants saplings on a grid (multiple types allowed, chosen randomly).
+
 ## 1.1.0 - 2026-07-26
 
-- Added realistic crushing entity damage during tree fall: trunk log collision causes instant death ("śmierć na miejscu"), while leaf block collision causes minor damage.
-- Added secret/bulk tree felling commands (`/secretfall`, `/fellall`, `/timber`, `/treefelling secretfall`) taking radius `x` and direction `N`, `S`, `W`, or `E` to fell all trees in range simultaneously.
+- Added realistic crushing entity damage during tree fall: trunk log collision causes instant death, while leaf block collision causes minor damage.
 
 ## 1.0.9 - 2026-07-25
 
