@@ -42,6 +42,20 @@ public final class TreeCutManager {
 		startFall(level, player, tree.get(), FallDirection.from(player.getDirection().getOpposite()));
 		return true;
 	}
+
+	/**
+	 * Public API: fell a tree at {@code pos} in {@code direction} without a player (fire, commands, other mods).
+	 * @return true when a valid tree was detected and the fall entity was spawned
+	 */
+	public static boolean forceFallInDirection(ServerLevel level, BlockPos pos, Direction direction) {
+		Optional<DetectedTree> tree = TreeDetector.detect(level, pos);
+		if (tree.isEmpty()) {
+			return false;
+		}
+		startFall(level, null, tree.get(), FallDirection.from(direction));
+		return true;
+	}
+
 	public static void startFallWithDirection(ServerLevel level, ServerPlayer player, DetectedTree tree, Direction direction) {
 		startFall(level, player, tree, FallDirection.from(direction));
 	}
@@ -51,7 +65,9 @@ public final class TreeCutManager {
 		for (DetectedTree.TreeBlockData block : fallingBlocks) level.setBlock(tree.base().offset(block.relative()), net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
 		FallingTreeEntity entity = new FallingTreeEntity(RealTreeFellingMod.FALLING_TREE, level);
 		entity.configure(new DetectedTree(tree.base(), fallingBlocks, tree.height()), direction); entity.setPos(tree.base().getX() + 0.5D, tree.base().getY(), tree.base().getZ() + 0.5D); level.addFreshEntity(entity);
-		hint(player, "message.peterwolfs_realistic_tree_felling.falling");
+		if (player != null) {
+			hint(player, "message.peterwolfs_realistic_tree_felling.falling");
+		}
 		if (TreeFellingConfig.INSTANCE.enableCreakingSounds) {
 			level.playSound(null, tree.base(), RealTreeFellingMod.TREE_FALL_START, SoundSource.BLOCKS, 1.5F, 1.0F);
 		}

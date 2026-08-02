@@ -1,6 +1,7 @@
 package com.peterwolf.realtreefelling.entity;
 
 import com.peterwolf.realtreefelling.RealTreeFellingMod;
+import com.peterwolf.realtreefelling.api.TreeLandCallbacks;
 import com.peterwolf.realtreefelling.config.TreeFellingConfig;
 import com.peterwolf.realtreefelling.cutting.CanopyDecayManager;
 import com.peterwolf.realtreefelling.cutting.FallDirection;
@@ -159,26 +160,35 @@ public final class FallingTreeEntity extends Entity {
 			discard();
 			return;
 		}
+		List<BlockPos> placedLogs = new ArrayList<>();
+		List<BlockPos> placedLeaves = new ArrayList<>();
 		for (TreeBlock treeBlock : blocks) {
 			BlockPos r = treeBlock.relative;
 			boolean leaf = treeBlock.state.is(BlockTags.LEAVES);
 			// Same transform as logs: canopy lies flat with the trunk — no elevated leaf mound.
 			BlockPos destination = FallTransform.landedPosition(anchor, r, direction);
 			if (leaf) {
-				placeOrBreakLeaf(level, destination, r, direction, treeBlock.state);
+				BlockPos leafAt = placeOrBreakLeaf(level, destination, r, direction, treeBlock.state);
+				if (leafAt != null) {
+					placedLeaves.add(leafAt);
+				}
 				continue;
 			}
 			BlockState existing = level.getBlockState(destination);
 			BlockState landedState = rotateLogTowardFall(treeBlock.state, direction);
 			if (existing.isAir() || existing.canBeReplaced()) {
 				level.setBlock(destination, landedState, Block.UPDATE_ALL);
-				if (landedState.is(BlockTags.LOGS)) FallenLogManager.register(level, destination);
+				if (landedState.is(BlockTags.LOGS)) {
+					FallenLogManager.register(level, destination);
+					placedLogs.add(destination.immutable());
+				}
 			} else if (TreeFellingConfig.INSTANCE.dropUnplaceableBlocks) {
 				Block.popResource(level, destination, new ItemStack(treeBlock.state.getBlock()));
 			}
 		}
 		BlockPos impactPos = anchor.offset(direction.getStepX() * Math.max(1, height() / 2), 0, direction.getStepZ() * Math.max(1, height() / 2));
 		level.playSound(null, impactPos, RealTreeFellingMod.TREE_FALL_IMPACT, SoundSource.BLOCKS, 1.6F, 0.9F + level.getRandom().nextFloat() * 0.2F);
+		TreeLandCallbacks.fire(level, anchor, direction, placedLogs, placedLeaves);
 		discard();
 	}
 
@@ -187,10 +197,11 @@ public final class FallingTreeEntity extends Entity {
 	 * The other half stays in the landed crown zone (far end of the trunk), flat — never piled
 	 * into a tall mound — and slowly disappears like leaves after the trunk is gone.
 	 */
-	private void placeOrBreakLeaf(ServerLevel level, BlockPos destination, BlockPos relative, Direction direction, BlockState leaf) {
+	/** @return placed leaf position, or null when debris-only / no free spot */
+	private BlockPos placeOrBreakLeaf(ServerLevel level, BlockPos destination, BlockPos relative, Direction direction, BlockState leaf) {
 		if (TreeFellingConfig.INSTANCE.breakLeavesOnImpact && isImpactCanopyHalf(relative)) {
 			dropLeafDebris(level, destination, leaf);
-			return;
+			return null;
 		}
 		BlockPos placeAt = findFlatCrownSpot(level, destination, direction);
 		if (placeAt != null) {
@@ -199,9 +210,11 @@ public final class FallingTreeEntity extends Entity {
 			level.setBlock(placeAt, decaying, Block.UPDATE_CLIENTS);
 			int delay = 100 + level.getRandom().nextInt(300); // ~5–20 s, staggered so the canopy fades gradually
 			CanopyDecayManager.schedule(level, placeAt, delay);
+			return placeAt.immutable();
 		} else if (TreeFellingConfig.INSTANCE.dropUnplaceableBlocks) {
 			dropLeafDebris(level, destination, leaf);
 		}
+		return null;
 	}
 
 	/**
