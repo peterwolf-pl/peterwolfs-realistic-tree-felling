@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.2 - 2026-08-06
+
+- Fixed floating canopy/branch fragments left in the air after some trees fell: detection captures a wider natural branch tip margin and a larger connected leaf crown for world removal, the falling entity keeps a network-safe visual subset, and a post-clear sweep removes orphan leaves, missed log tips, and hanging vines/cocoa that would otherwise float.
+
 ## 1.1.1 - 2026-07-28
 
 - Added secret admin timber tools: `/timber removelogs <radius>` removes all log blocks near the player (no drops), and `/timber reseed <radius> <spacing> <sapling…>` plants saplings on a grid (multiple types allowed, chosen randomly).
