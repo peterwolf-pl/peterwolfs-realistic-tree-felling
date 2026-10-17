@@ -6,12 +6,12 @@ import com.peterwolf.realtreefelling.RealTreeFellingMod;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import net.fabricmc.loader.api.FabricLoader;
+import net.neoforged.fml.loading.FMLPaths;
 
 /** Small, human-editable server configuration. Reload is intentionally atomic. */
 public final class TreeFellingConfig {
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-	private static final Path PATH = FabricLoader.getInstance().getConfigDir().resolve("peterwolfs-realistic-tree-felling.json");
+	private static final Path PATH = FMLPaths.CONFIGDIR.get().resolve("peterwolfs-realistic-tree-felling.json");
 	public static TreeFellingConfig INSTANCE = new TreeFellingConfig();
 	public boolean enableRealisticFelling = true, requireAxe = true, allowHandCutting = false, requireLeavesForTreeDetection = false;
 	public int maximumTreeHeight = 48, maximumTreeBlocks = 256, maximumBranchDistance = 7;

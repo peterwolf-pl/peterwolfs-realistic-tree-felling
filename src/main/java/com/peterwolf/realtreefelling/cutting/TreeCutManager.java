@@ -102,7 +102,7 @@ public final class TreeCutManager {
 
 		// Entity geometry is capped for network safety; overflow leaves were already deleted above.
 		List<DetectedTree.TreeBlockData> entityBlocks = limitEntityBlocks(fallingBlocks);
-		FallingTreeEntity entity = new FallingTreeEntity(RealTreeFellingMod.FALLING_TREE, level);
+		FallingTreeEntity entity = new FallingTreeEntity(RealTreeFellingMod.FALLING_TREE.get(), level);
 		entity.configure(new DetectedTree(tree.base(), entityBlocks, tree.height()), direction);
 		entity.setPos(tree.base().getX() + 0.5D, tree.base().getY(), tree.base().getZ() + 0.5D);
 		level.addFreshEntity(entity);
@@ -111,7 +111,7 @@ public final class TreeCutManager {
 			hint(player, "message.peterwolfs_realistic_tree_felling.falling");
 		}
 		if (TreeFellingConfig.INSTANCE.enableCreakingSounds) {
-			level.playSound(null, tree.base(), RealTreeFellingMod.TREE_FALL_START, SoundSource.BLOCKS, 1.5F, 1.0F);
+			level.playSound(null, tree.base(), RealTreeFellingMod.TREE_FALL_START.get(), SoundSource.BLOCKS, 1.5F, 1.0F);
 		}
 	}
 
