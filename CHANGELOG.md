@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.1.5 - 2026-09-18
+
+- Port to Minecraft 26.3.
+
+## 1.1.4 - 2026-09-17
+
+- Reduced default leaf-hit damage: canopy collision now deals `leafEntityDamage` (1.0, half a heart) once per entity instead of 4.0 per overlapping leaf, and total leaf damage per fall is capped at `maximumEntityDamage` (6.0). Trunk logs still kill instantly. Existing configs pick up the new leaf value automatically.
+
+## 1.1.3 - 2026-08-29
+
+- Fixed leftover floating trunk/branch pieces on acacia and similar leaning trees: log detection now follows 26-neighbour diagonal forks (vanilla `ForkingTrunkPlacer` steps the konar sideways as it rises), the stump is the true grounded trunk even when you cut a leaning limb, and a post-clear sweep removes any remaining floating log clusters plus their canopy.
+
 ## 1.1.2 - 2026-08-06
 
 - Fixed floating canopy/branch fragments left in the air after some trees fell: detection captures a wider natural branch tip margin and a larger connected leaf crown for world removal, the falling entity keeps a network-safe visual subset, and a post-clear sweep removes orphan leaves, missed log tips, and hanging vines/cocoa that would otherwise float.

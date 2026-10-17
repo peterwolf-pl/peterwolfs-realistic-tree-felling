@@ -1,6 +1,6 @@
 # PeterWolf's Realistic Tree Felling
 
-Fabric 26.2 mod that turns one axe break on a natural tree into a server-authoritative fall away from the player.
+Fabric 26.3 mod that turns one axe break on a natural tree into a server-authoritative fall away from the player.
 
 ## Phase 1 gameplay
 
@@ -19,7 +19,7 @@ Sneak while breaking to preserve normal vanilla breaking (enabled by default). T
 
 ## Install
 
-Place `build/libs/peterwolfs-realistic-tree-felling-1.0.9.jar` in both the client and dedicated-server `mods` directories with Fabric Loader 0.19.3+ and Fabric API 0.153.0+26.2. Use Java 25.
+Place `build/libs/peterwolfs-realistic-tree-felling-1.1.5.jar` in both the client and dedicated-server `mods` directories with Fabric Loader 0.19.5+ and Fabric API 0.160.7+26.3. Use Java 25.
 
 The first launch creates `config/peterwolfs-realistic-tree-felling.json`. Every setting requested for gameplay tuning is present there, including detection bounds, damage policy, preview toggles, landing behavior and impact rules.
 

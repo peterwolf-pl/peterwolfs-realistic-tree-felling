@@ -1,8 +1,8 @@
 # Manual Phase 1 checklist
 
-- [ ] Launch an integrated or dedicated Fabric 26.2 server with the built JAR and Fabric API.
+- [ ] Launch an integrated or dedicated Fabric 26.3 server with the built JAR and Fabric API.
 - [ ] On an oak tree, break any trunk block once with an axe; verify the stump remains and the tree lands away from the player.
-- [ ] Repeat with birch, spruce, acacia, mangrove, cherry and a branchy tree.
+- [ ] Repeat with birch, spruce, acacia, mangrove, cherry and a branchy tree. For acacia, confirm the leaning konar (diagonal trunk fork) falls with the tree and no log pieces stay floating in the original crown.
 - [ ] Sneak-break a log and verify normal vanilla destruction still works.
 - [ ] Try a horizontal log wall and verify it is rejected without removing logs.
 - [ ] Lower `maximumTreeBlocks`, try a larger tree and verify it remains intact.

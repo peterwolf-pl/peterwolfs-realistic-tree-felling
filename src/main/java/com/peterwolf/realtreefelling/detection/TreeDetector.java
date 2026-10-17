@@ -7,7 +7,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.level.block.Block;
@@ -17,6 +19,12 @@ import net.minecraft.world.level.block.state.BlockState;
 public final class TreeDetector {
 	/** Absolute horizontal reach for tip expansion past {@code maximumBranchDistance} (natural branch ends). */
 	private static final int BRANCH_TIP_EXTRA = 5;
+	/**
+	 * Vanilla acacia/cherry/fancy oak step the trunk sideways as they rise, so a log on the
+	 * original column is not required at every height. Count Y-levels with a log in this Chebyshev
+	 * radius around the stump as "trunk" for the vertical-shape check.
+	 */
+	private static final int LEANING_TRUNK_RADIUS = 3;
 	/**
 	 * Leaves must be cleared from the world even when they cannot all fit in the falling entity's
 	 * synchronized geometry. This cap is for world-removal completeness, not client animation.
@@ -28,33 +36,21 @@ public final class TreeDetector {
 	public static Optional<DetectedTree> detect(ServerLevel level, BlockPos requestedBase) {
 		TreeFellingConfig c = TreeFellingConfig.INSTANCE;
 		if (!level.getBlockState(requestedBase).is(BlockTags.LOGS)) return Optional.empty();
-		BlockPos base = descendTrunk(level, requestedBase, c.maximumTreeHeight);
-		Set<BlockPos> found = new HashSet<>();
-		ArrayDeque<BlockPos> queue = new ArrayDeque<>();
-		found.add(base);
-		queue.add(base);
+		BlockPos start = requestedBase.immutable();
+		BlockPos base = findStump(level, start, c);
+		Set<BlockPos> found = floodFillLogs(level, base, c);
+		if (found.size() > c.maximumTreeBlocks) return Optional.empty();
 		int highest = base.getY();
-		int vertical = 0;
-		// Soft box (maximumBranchDistance) plus a small tip margin so natural branch ends are not left floating.
-		int branchLimit = c.maximumBranchDistance + BRANCH_TIP_EXTRA;
-		while (!queue.isEmpty() && found.size() <= c.maximumTreeBlocks) {
-			BlockPos here = queue.removeFirst();
-			highest = Math.max(highest, here.getY());
-			if (here.getX() == base.getX() && here.getZ() == base.getZ()) vertical++;
-			for (var direction : net.minecraft.core.Direction.values()) {
-				BlockPos next = here.relative(direction);
-				if (next.getY() < base.getY() || next.getY() > base.getY() + c.maximumTreeHeight) continue;
-				if (Math.abs(next.getX() - base.getX()) > branchLimit || Math.abs(next.getZ() - base.getZ()) > branchLimit) continue;
-				if (found.contains(next)) continue;
-				if (level.getBlockState(next).is(BlockTags.LOGS)) {
-					found.add(next);
-					queue.addLast(next);
-				}
+		Set<Integer> trunkLevels = new HashSet<>();
+		for (BlockPos pos : found) {
+			highest = Math.max(highest, pos.getY());
+			if (Math.abs(pos.getX() - base.getX()) <= LEANING_TRUNK_RADIUS
+				&& Math.abs(pos.getZ() - base.getZ()) <= LEANING_TRUNK_RADIUS) {
+				trunkLevels.add(pos.getY());
 			}
 		}
-		if (found.size() > c.maximumTreeBlocks) return Optional.empty();
 		int height = highest - base.getY() + 1;
-		if (found.size() < 2 || height < 2 || vertical * 100 < Math.max(35, height * 45)
+		if (found.size() < 2 || height < 2 || trunkLevels.size() * 100 < Math.max(35, height * 45)
 			|| (c.requireLeavesForTreeDetection && !hasLeaves(level, found))) {
 			return Optional.empty();
 		}
@@ -70,11 +66,125 @@ public final class TreeDetector {
 		return Optional.of(new DetectedTree(base, List.copyOf(blocks), height));
 	}
 
-	private static BlockPos descendTrunk(ServerLevel level, BlockPos pos, int limit) {
-		for (int i = 0; i < limit && level.getBlockState(pos.below()).is(BlockTags.LOGS); i++) {
-			pos = pos.below();
+	/**
+	 * Walk down to the real grounded stump from any cut log, including an acacia konar.
+	 * Same-Y steps stay six-neighbour (horizontal branches); downward steps use 26-neighbour
+	 * so a ForkingTrunkPlacer staircase (±1, -1, 0) is followed to dirt.
+	 */
+	private static BlockPos findStump(ServerLevel level, BlockPos start, TreeFellingConfig config) {
+		int limit = config.maximumTreeHeight;
+		int branchLimit = config.maximumBranchDistance + BRANCH_TIP_EXTRA;
+		Set<BlockPos> seen = new HashSet<>();
+		ArrayDeque<BlockPos> queue = new ArrayDeque<>();
+		seen.add(start);
+		queue.add(start);
+		BlockPos lowest = start;
+		BlockPos bestGroundedOnStart = isGroundedLog(level, start) ? start : null;
+		BlockPos bestGrounded = bestGroundedOnStart;
+		while (!queue.isEmpty()) {
+			BlockPos here = queue.removeFirst();
+			if (here.getY() < lowest.getY()) lowest = here;
+			if (isGroundedLog(level, here)) {
+				if (bestGrounded == null || here.getY() < bestGrounded.getY()) bestGrounded = here;
+				if (here.getX() == start.getX() && here.getZ() == start.getZ()
+					&& (bestGroundedOnStart == null || here.getY() < bestGroundedOnStart.getY())) {
+					bestGroundedOnStart = here;
+				}
+			}
+			offerStumpStep(level, here, Direction.DOWN, start, limit, branchLimit, seen, queue);
+			offerStumpStep(level, here, Direction.NORTH, start, limit, branchLimit, seen, queue);
+			offerStumpStep(level, here, Direction.SOUTH, start, limit, branchLimit, seen, queue);
+			offerStumpStep(level, here, Direction.WEST, start, limit, branchLimit, seen, queue);
+			offerStumpStep(level, here, Direction.EAST, start, limit, branchLimit, seen, queue);
+			for (int dx = -1; dx <= 1; dx++) {
+				for (int dz = -1; dz <= 1; dz++) {
+					if (dx == 0 && dz == 0) continue;
+					offerStumpCandidate(level, here.offset(dx, -1, dz), start, limit, branchLimit, seen, queue);
+				}
+			}
 		}
-		return pos;
+		if (bestGroundedOnStart != null) return bestGroundedOnStart;
+		if (bestGrounded != null) return bestGrounded;
+		return lowest;
+	}
+
+	private static void offerStumpStep(
+		ServerLevel level,
+		BlockPos here,
+		Direction direction,
+		BlockPos start,
+		int limit,
+		int branchLimit,
+		Set<BlockPos> seen,
+		ArrayDeque<BlockPos> queue
+	) {
+		offerStumpCandidate(level, here.relative(direction), start, limit, branchLimit, seen, queue);
+	}
+
+	private static void offerStumpCandidate(
+		ServerLevel level,
+		BlockPos next,
+		BlockPos start,
+		int limit,
+		int branchLimit,
+		Set<BlockPos> seen,
+		ArrayDeque<BlockPos> queue
+	) {
+		if (next.getY() > start.getY() || next.getY() < start.getY() - limit) return;
+		if (Math.abs(next.getX() - start.getX()) > branchLimit || Math.abs(next.getZ() - start.getZ()) > branchLimit) {
+			return;
+		}
+		if (!level.getBlockState(next).is(BlockTags.LOGS)) return;
+		BlockPos stored = next.immutable();
+		if (seen.add(stored)) queue.addLast(stored);
+	}
+
+	/**
+	 * 26-neighbour log flood fill from the stump. Vanilla acacia ({@code ForkingTrunkPlacer})
+	 * places the next trunk block at (dx, dy, dz) = (±1, 1, 0) — edge-adjacent, not a
+	 * six-neighbour of the previous log — so a six-way fill leaves the leaning konar floating.
+	 */
+	private static Set<BlockPos> floodFillLogs(ServerLevel level, BlockPos base, TreeFellingConfig config) {
+		Set<BlockPos> found = new HashSet<>();
+		ArrayDeque<BlockPos> queue = new ArrayDeque<>();
+		found.add(base);
+		queue.add(base);
+		int branchLimit = config.maximumBranchDistance + BRANCH_TIP_EXTRA;
+		int maxY = base.getY() + config.maximumTreeHeight;
+		while (!queue.isEmpty() && found.size() <= config.maximumTreeBlocks) {
+			BlockPos here = queue.removeFirst();
+			forEachNeighbor26(here, next -> {
+				if (found.size() > config.maximumTreeBlocks) return;
+				if (next.getY() < base.getY() || next.getY() > maxY) return;
+				if (Math.abs(next.getX() - base.getX()) > branchLimit
+					|| Math.abs(next.getZ() - base.getZ()) > branchLimit) {
+					return;
+				}
+				if (found.contains(next)) return;
+				if (!level.getBlockState(next).is(BlockTags.LOGS)) return;
+				BlockPos stored = next.immutable();
+				found.add(stored);
+				queue.addLast(stored);
+			});
+		}
+		return found;
+	}
+
+	private static boolean isGroundedLog(ServerLevel level, BlockPos pos) {
+		BlockPos below = pos.below();
+		BlockState belowState = level.getBlockState(below);
+		if (belowState.is(BlockTags.LOGS) || belowState.is(BlockTags.LEAVES)) return false;
+		return belowState.isFaceSturdy(level, below, Direction.UP);
+	}
+
+	public static void forEachNeighbor26(BlockPos pos, Consumer<BlockPos> consumer) {
+		for (int dx = -1; dx <= 1; dx++) {
+			for (int dy = -1; dy <= 1; dy++) {
+				for (int dz = -1; dz <= 1; dz++) {
+					if (dx != 0 || dy != 0 || dz != 0) consumer.accept(pos.offset(dx, dy, dz));
+				}
+			}
+		}
 	}
 
 	private static boolean hasLeaves(ServerLevel level, Set<BlockPos> logs) {

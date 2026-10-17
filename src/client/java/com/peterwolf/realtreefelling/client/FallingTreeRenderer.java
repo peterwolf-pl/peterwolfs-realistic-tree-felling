@@ -32,8 +32,8 @@ public final class FallingTreeRenderer extends EntityRenderer<FallingTreeEntity,
 	@Override public void submit(FallingTreeRenderState state, PoseStack stack, SubmitNodeCollector collector, CameraRenderState camera) {
 		stack.pushPose();
 		// Submit vanilla block models around local y=0: the cut/base point. This deliberately avoids an entity mesh.
-		stack.mulPose(Axis.YP.rotationDegrees(FallTransform.rendererYaw(net.minecraft.core.Direction.from2DDataValue(state.direction))));
-		stack.mulPose(Axis.ZP.rotationDegrees(state.tilt));
+		stack.rotateDegrees(Axis.YP, FallTransform.rendererYaw(net.minecraft.core.Direction.from2DDataValue(state.direction)));
+		stack.rotateDegrees(Axis.ZP, state.tilt);
 		for (FallingTreeEntity.VisualBlock block : state.blocks) {
 			BlockPos relative = block.relative();
 			submitBlock(collector, stack, block.leaf() ? state.leafBlock : state.logBlock, state.outlineColor, relative.getX(), relative.getY(), relative.getZ());

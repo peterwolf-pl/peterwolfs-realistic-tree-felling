@@ -10,7 +10,11 @@ import com.peterwolf.realtreefelling.detection.DetectedTree;
 import com.peterwolf.realtreefelling.physics.FallTransform;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -25,6 +29,7 @@ import net.minecraft.tags.BlockTags;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.InterpolationHandler;
+import net.minecraft.world.entity.LinearInterpolationHandler;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
@@ -42,8 +47,8 @@ public final class FallingTreeEntity extends Entity {
 	private static final EntityDataAccessor<String> VISUAL_LOG_BLOCK = SynchedEntityData.defineId(FallingTreeEntity.class, EntityDataSerializers.STRING);
 	private static final EntityDataAccessor<String> VISUAL_LEAF_BLOCK = SynchedEntityData.defineId(FallingTreeEntity.class, EntityDataSerializers.STRING);
 	private static final EntityDataAccessor<String> VISUAL_GEOMETRY = SynchedEntityData.defineId(FallingTreeEntity.class, EntityDataSerializers.STRING);
-	private final InterpolationHandler interpolation = new InterpolationHandler(this, 3);
 	private final List<TreeBlock> blocks = new ArrayList<>(); private BlockPos anchor = BlockPos.ZERO;
+	private final Map<Integer, Float> leafDamageDealt = new HashMap<>();
 	private String decodedGeometry = ""; private List<VisualBlock> decodedVisualBlocks = List.of();
 	public FallingTreeEntity(EntityType<? extends FallingTreeEntity> type, Level level) { super(type, level); this.blocksBuilding = true; }
 	public void configure(DetectedTree tree, FallDirection direction) {
@@ -74,7 +79,7 @@ public final class FallingTreeEntity extends Entity {
 	@Override public void tick() {
 		super.tick();
 		if (level().isClientSide()) {
-			interpolation.interpolate();
+			getInterpolation().interpolate();
 			return;
 		}
 		int age = entityData.get(AGE) + 1;
@@ -100,6 +105,9 @@ public final class FallingTreeEntity extends Entity {
 		List<net.minecraft.world.entity.LivingEntity> candidateEntities = level.getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class, searchBox, e -> e.isAlive() && !e.isSpectator());
 
 		if (candidateEntities.isEmpty()) return;
+
+		Set<net.minecraft.world.entity.LivingEntity> logHits = new HashSet<>();
+		Set<net.minecraft.world.entity.LivingEntity> leafHits = new HashSet<>();
 
 		for (TreeBlock treeBlock : blocks) {
 			BlockPos rel = treeBlock.relative;
@@ -140,15 +148,31 @@ public final class FallingTreeEntity extends Entity {
 				}
 
 				if (entity.getBoundingBox().intersects(blockAABB)) {
-					if (isLog) {
-						// Trunk log hit: instant death on the spot!
-						entity.invulnerableTime = 0;
-						entity.hurtServer(level, level.damageSources().fallingBlock(this), 1000.0F);
-					} else {
-						// Leaf block hit: smaller damage
-						entity.hurtServer(level, level.damageSources().fallingBlock(this), 4.0F);
-					}
+					if (isLog) logHits.add(entity);
+					else leafHits.add(entity);
 				}
+			}
+		}
+
+		for (net.minecraft.world.entity.LivingEntity entity : logHits) {
+			if (!entity.isAlive()) continue;
+			entity.setInvulnerableTime(0);
+			entity.hurtServer(level, level.damageSources().fallingBlock(this), 1000.0F);
+		}
+
+		TreeFellingConfig config = TreeFellingConfig.INSTANCE;
+		float leafDamage = (float) Math.max(0.0, config.leafEntityDamage);
+		float leafCap = (float) Math.max(0.0, config.maximumEntityDamage);
+		if (leafDamage <= 0.0F || leafCap <= 0.0F) return;
+
+		for (net.minecraft.world.entity.LivingEntity entity : leafHits) {
+			if (!entity.isAlive() || logHits.contains(entity)) continue;
+			float already = leafDamageDealt.getOrDefault(entity.getId(), 0.0F);
+			float remaining = leafCap - already;
+			if (remaining <= 0.0F) continue;
+			float amount = Math.min(leafDamage, remaining);
+			if (entity.hurtServer(level, level.damageSources().fallingBlock(this), amount)) {
+				leafDamageDealt.merge(entity.getId(), amount, Float::sum);
 			}
 		}
 	}
@@ -361,7 +385,7 @@ public final class FallingTreeEntity extends Entity {
 	@Override public boolean isClientAuthoritative() { return false; }
 	@Override public boolean hurtServer(ServerLevel level, net.minecraft.world.damagesource.DamageSource source, float amount) { return false; }
 	@Override protected boolean isLocalClientAuthoritative() { return false; }
-	@Override public InterpolationHandler getInterpolation() { return interpolation; }
+	@Override protected InterpolationHandler createInterpolationHandler() { return LinearInterpolationHandler.create(this, 3); }
 	@Override protected void readAdditionalSaveData(ValueInput input) {
 		anchor = new BlockPos(input.getIntOr("AnchorX", 0), input.getIntOr("AnchorY", 0), input.getIntOr("AnchorZ", 0)); entityData.set(AGE, input.getIntOr("Age", 0)); entityData.set(HEIGHT, input.getIntOr("Height", 2)); entityData.set(DIRECTION, input.getIntOr("Direction", 2)); entityData.set(VISUAL_LOG_BLOCK, input.getStringOr("VisualLogBlock", "minecraft:oak_log")); entityData.set(VISUAL_LEAF_BLOCK, input.getStringOr("VisualLeafBlock", "minecraft:oak_leaves"));
 		blocks.clear(); int count = input.getIntOr("BlockCount", 0); for (int i = 0; i < count; i++) { Identifier id = Identifier.tryParse(input.getStringOr("Block" + i, "minecraft:oak_log")); Block b = id == null ? Blocks.OAK_LOG : BuiltInRegistries.BLOCK.getValue(id); blocks.add(new TreeBlock(new BlockPos(input.getIntOr("X" + i, 0), input.getIntOr("Y" + i, 0), input.getIntOr("Z" + i, 0)), b.defaultBlockState())); }

@@ -20,7 +20,7 @@ public final class TreeFellingConfig {
 	public boolean enableDiagonalFallDirections = false, enableAdvancedHingePhysics = false, enableTreeLean = false, enableWindInfluence = false, enableRandomFallDeviation = false;
 	public double maximumRandomFallAngle = 8.0;
 	public boolean enableBlockDamage = false, enableEntityDamage = true, enablePlayerDamage = true, enableMobDamage = true, enablePvPDamage = false;
-	public double baseEntityDamage = 4.0, maximumEntityDamage = 18.0;
+	public double baseEntityDamage = 4.0, leafEntityDamage = 1.0, maximumEntityDamage = 6.0;
 	public boolean breakLeavesOnImpact = true, breakPlantsOnImpact = true, breakFragileBlocksOnImpact = false, damageStructures = false;
 	public boolean placeTreeBlocksAfterLanding = true, keepTreeAsEntityAfterLanding = false, dropUnplaceableBlocks = true;
 	public boolean enableFallDirectionPreview = true, enableLandingZonePreview = true, enableScreenShake = true, enableParticles = true, enableCreakingSounds = true, enableActionBarHints = true;

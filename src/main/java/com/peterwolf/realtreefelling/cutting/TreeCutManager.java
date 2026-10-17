@@ -5,6 +5,7 @@ import com.peterwolf.realtreefelling.config.TreeFellingConfig;
 import com.peterwolf.realtreefelling.detection.DetectedTree;
 import com.peterwolf.realtreefelling.detection.TreeDetector;
 import com.peterwolf.realtreefelling.entity.FallingTreeEntity;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -18,7 +19,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.BlockTags;
-import net.minecraft.world.item.AxeItem;
+import net.minecraft.tags.ItemTags;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -41,7 +42,7 @@ public final class TreeCutManager {
 		}
 		ItemStack tool = player.getMainHandItem();
 		if (FallenLogManager.onBreakAttempt(level, player, hit, tool)) return true;
-		if (c.requireAxe && !(tool.getItem() instanceof AxeItem)) {
+		if (c.requireAxe && !tool.is(ItemTags.AXES)) {
 			hint(player, "message.peterwolfs_realistic_tree_felling.require_axe");
 			return true;
 		}
@@ -147,9 +148,10 @@ public final class TreeCutManager {
 	}
 
 	/**
-	 * After the captured structure is removed, sweep the original crown volume and delete leaves
-	 * (and rare missed log tips) that would only have been supported by this tree. Neighboring
-	 * trees keep their canopy when a closer remaining trunk still supports those leaves.
+	 * After the captured structure is removed, delete leftover floating log clusters (acacia
+	 * konars, missed diagonal forks) then sweep the original crown volume for orphan leaves
+	 * that would only have been supported by this tree. Neighboring trees keep their canopy
+	 * when a closer remaining trunk still supports those leaves.
 	 */
 	private static void clearFloatingRemnants(
 		ServerLevel level,
@@ -184,7 +186,7 @@ public final class TreeCutManager {
 		// Stump stays in the world and belongs only to remainingLogs — never treat it as removed support,
 		// or low leaves beside the stump would be wiped incorrectly.
 
-		int pad = 3;
+		int pad = 8;
 		minX -= pad;
 		maxX += pad;
 		minY = Math.max(level.getMinY(), minY - 1);
@@ -202,6 +204,11 @@ public final class TreeCutManager {
 			}
 		}
 
+		// Diagonal forks (acacia konars, cherry limbs) can sit a 26-neighbour away from captured
+		// wood, so a single-block "tip" check never sees them. Remove whole floating clusters
+		// before the leaf sweep, otherwise leftover konars keep their canopy in the air.
+		clearFloatingLogClusters(level, base, remainingLogs, removedLogSupport, alreadyCleared);
+
 		for (BlockPos pos : BlockPos.betweenClosed(minX, minY, minZ, maxX, maxY, maxZ)) {
 			if (!level.isLoaded(pos) || alreadyCleared.contains(pos)) continue;
 			BlockState state = level.getBlockState(pos);
@@ -216,14 +223,6 @@ public final class TreeCutManager {
 					level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
 					alreadyCleared.add(pos.immutable());
 				}
-				continue;
-			}
-
-			// Rare missed branch tips still connected to cleared wood: remove floating log stubs.
-			if (state.is(BlockTags.LOGS) && !pos.equals(base) && isFloatingMissedTip(level, pos, remainingLogs, removedLogSupport)) {
-				level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
-				alreadyCleared.add(pos.immutable());
-				remainingLogs.remove(pos);
 			}
 		}
 
@@ -232,46 +231,72 @@ public final class TreeCutManager {
 	}
 
 	/**
-	 * A small log stub is a "missed tip" when it sits next to cleared wood, has no solid ground
-	 * under a short column, and is closer to removed support than to any other remaining trunk mass.
+	 * Delete remaining log clusters that are in the air, belonged to the felled tree, and are not
+	 * sitting on terrain or joined to another living trunk. Grounded neighbor trees, the stump,
+	 * and previously fallen logs on the ground are left alone.
 	 */
-	private static boolean isFloatingMissedTip(
+	private static void clearFloatingLogClusters(
 		ServerLevel level,
-		BlockPos pos,
+		BlockPos stump,
 		Set<BlockPos> remainingLogs,
-		Set<BlockPos> removedLogSupport
+		Set<BlockPos> removedLogSupport,
+		Set<BlockPos> alreadyCleared
 	) {
-		boolean touchesRemoved = false;
-		for (Direction direction : Direction.values()) {
-			if (removedLogSupport.contains(pos.relative(direction))) {
-				touchesRemoved = true;
-				break;
+		Set<BlockPos> visited = new HashSet<>();
+		for (BlockPos seed : List.copyOf(remainingLogs)) {
+			if (!remainingLogs.contains(seed) || !visited.add(seed)) continue;
+			List<BlockPos> cluster = new ArrayList<>();
+			ArrayDeque<BlockPos> queue = new ArrayDeque<>();
+			queue.add(seed);
+			boolean supported = false;
+			while (!queue.isEmpty()) {
+				BlockPos here = queue.removeFirst();
+				cluster.add(here);
+				if (here.equals(stump) || isExternallySupportedLog(level, here, remainingLogs)) {
+					supported = true;
+				}
+				TreeDetector.forEachNeighbor26(here, next -> {
+					BlockPos neighbor = next.immutable();
+					if (remainingLogs.contains(neighbor) && visited.add(neighbor)) {
+						queue.addLast(neighbor);
+					}
+				});
+			}
+			if (supported) continue;
+			boolean belongedToFelledTree = false;
+			for (BlockPos pos : cluster) {
+				if (nearestDistanceSquared(pos, removedLogSupport) <= 12) {
+					belongedToFelledTree = true;
+					break;
+				}
+			}
+			if (!belongedToFelledTree) continue;
+			for (BlockPos pos : cluster) {
+				if (pos.equals(stump)) continue;
+				level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
+				alreadyCleared.add(pos);
+				remainingLogs.remove(pos);
 			}
 		}
-		if (!touchesRemoved) return false;
-		// Exclude self — this stub is still in remainingLogs until we delete it.
-		int toOtherRemaining = nearestDistanceSquaredExcluding(pos, remainingLogs, pos);
-		if (nearestDistanceSquared(pos, removedLogSupport) > toOtherRemaining) return false;
-		// Grounded logs (on solid block or another log) stay; floating mid-air stubs go.
-		BlockPos below = pos.below();
-		BlockState belowState = level.getBlockState(below);
-		if (belowState.isFaceSturdy(level, below, Direction.UP) || belowState.is(BlockTags.LOGS)) {
-			return false;
-		}
-		return true;
 	}
 
-	private static int nearestDistanceSquaredExcluding(BlockPos position, Set<BlockPos> sources, BlockPos exclude) {
-		if (sources.isEmpty()) return Integer.MAX_VALUE;
-		int nearest = Integer.MAX_VALUE;
-		for (BlockPos source : sources) {
-			if (source.equals(exclude)) continue;
-			int x = position.getX() - source.getX();
-			int y = position.getY() - source.getY();
-			int z = position.getZ() - source.getZ();
-			nearest = Math.min(nearest, x * x + y * y + z * z);
+	/**
+	 * A log is independently supported when it sits on solid ground, or on a log outside this
+	 * sweep (another tree just beyond the scan). Leaves do not count — a konar resting in its
+	 * own canopy is still floating wood. Logs sitting on other remaining logs are resolved by
+	 * the cluster walk, not here.
+	 */
+	private static boolean isExternallySupportedLog(ServerLevel level, BlockPos pos, Set<BlockPos> remainingLogs) {
+		BlockPos below = pos.below();
+		if (!level.isLoaded(below)) return true;
+		BlockState belowState = level.getBlockState(below);
+		if (belowState.is(BlockTags.LOGS)) {
+			return !remainingLogs.contains(below.immutable());
 		}
-		return nearest;
+		if (belowState.is(BlockTags.LEAVES) || belowState.isAir() || belowState.canBeReplaced()) {
+			return false;
+		}
+		return belowState.isFaceSturdy(level, below, Direction.UP);
 	}
 
 	private static void clearHangingAttachments(
@@ -322,7 +347,7 @@ public final class TreeCutManager {
 	}
 
 	private static void cutSound(ServerLevel level, BlockPos pos) {
-		level.playSound(null, pos, SoundEvents.AXE_STRIP, SoundSource.BLOCKS, 0.9F, 1.0F);
+		level.playSound(null, pos, SoundEvents.AXE_STRIP.value(), SoundSource.BLOCKS, 0.9F, 1.0F);
 	}
 
 	private static void damageAxe(ServerPlayer player, ItemStack stack) {
