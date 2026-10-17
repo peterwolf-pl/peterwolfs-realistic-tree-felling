@@ -10,7 +10,7 @@ import net.minecraft.client.renderer.block.MovingBlockRenderState;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
-import net.minecraft.client.renderer.state.level.CameraRenderState;
+import net.minecraft.client.renderer.state.CameraRenderState;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
@@ -36,14 +36,14 @@ public final class FallingTreeRenderer extends EntityRenderer<FallingTreeEntity,
 		stack.mulPose(Axis.ZP.rotationDegrees(state.tilt));
 		for (FallingTreeEntity.VisualBlock block : state.blocks) {
 			BlockPos relative = block.relative();
-			submitBlock(collector, stack, block.leaf() ? state.leafBlock : state.logBlock, state.outlineColor, relative.getX(), relative.getY(), relative.getZ());
+			submitBlock(collector, stack, block.leaf() ? state.leafBlock : state.logBlock, relative.getX(), relative.getY(), relative.getZ());
 		}
 		stack.popPose();
 	}
-	private static void submitBlock(SubmitNodeCollector collector, PoseStack stack, MovingBlockRenderState block, int outline, int x, int y, int z) {
-		stack.pushPose(); stack.translate(x - 0.5D, y, z - 0.5D); collector.submitMovingBlock(stack, block, outline); stack.popPose();
+	private static void submitBlock(SubmitNodeCollector collector, PoseStack stack, MovingBlockRenderState block, int x, int y, int z) {
+		stack.pushPose(); stack.translate(x - 0.5D, y, z - 0.5D); collector.submitMovingBlock(stack, block); stack.popPose();
 	}
 	private static void configure(MovingBlockRenderState state, ClientLevel level, BlockPos position, net.minecraft.world.level.block.state.BlockState block) {
-		state.randomSeedPos = position; state.blockPos = position; state.blockState = block; state.biome = level.getBiome(position); state.cardinalLighting = level.cardinalLighting(); state.lightEngine = level.getLightEngine();
+		state.randomSeedPos = position; state.blockPos = position; state.blockState = block; state.biome = level.getBiome(position); state.level = level;
 	}
 }

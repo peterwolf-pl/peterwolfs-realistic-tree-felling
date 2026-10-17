@@ -42,7 +42,7 @@ public final class RealTreeFellingMod implements ModInitializer {
 			if (level instanceof ServerLevel serverLevel && player instanceof ServerPlayer serverPlayer) return !TreeCutManager.onLogBreakAttempt(serverLevel, serverPlayer, pos);
 			return true;
 		});
-		ServerTickEvents.END_LEVEL_TICK.register(CanopyDecayManager::tick);
+		ServerTickEvents.END_WORLD_TICK.register(CanopyDecayManager::tick);
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> TreeFellingCommands.register(dispatcher));
 		LOGGER.info("PeterWolf's Realistic Tree Felling initialized.");
 	}

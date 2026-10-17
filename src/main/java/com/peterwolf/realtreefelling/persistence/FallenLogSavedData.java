@@ -23,7 +23,7 @@ public final class FallenLogSavedData extends SavedData {
 		).apply(instance, FallenLog::new));
 	}
 	private static final Codec<FallenLogSavedData> CODEC = RecordCodecBuilder.create(instance -> instance.group(FallenLog.CODEC.listOf().optionalFieldOf("logs", List.of()).forGetter(FallenLogSavedData::logs)).apply(instance, FallenLogSavedData::new));
-	private static final SavedDataType<FallenLogSavedData> TYPE = new SavedDataType<>(RealTreeFellingMod.id("fallen_logs"), FallenLogSavedData::new, CODEC, DataFixTypes.LEVEL);
+	private static final SavedDataType<FallenLogSavedData> TYPE = new SavedDataType<>(RealTreeFellingMod.id("fallen_logs").toString(), FallenLogSavedData::new, CODEC, DataFixTypes.LEVEL);
 	private final List<FallenLog> logs = new ArrayList<>();
 	public FallenLogSavedData() {}
 	private FallenLogSavedData(List<FallenLog> logs) { this.logs.addAll(logs); }
